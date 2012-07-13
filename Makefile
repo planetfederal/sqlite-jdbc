@@ -32,7 +32,7 @@ native: $(UPDATE_FLAG)
 
 package: $(UPDATE_FLAG)
 	rm -rf target/dependency-maven-plugin-markers
-	DYLD_LIBRARY_PATH=$(SPATIAL_LIB_PATH) mvn -Djava.library.path=$(SPATIAL_LIB_PATH) package
+	DYLD_LIBRARY_PATH=$(SPATIAL_LIB_PATH) mvn -Djava.library.path=$(SPATIAL_LIB_PATH) -P spatialite package
 
 clean-native:
 	rm -rf $(SQLITE_BUILD_DIR) $(UPDATE_FLAG)

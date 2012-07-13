@@ -31,6 +31,16 @@ else
 endif
 
 sqlite := sqlite-$(version)
+spatialite := spatialite-${spatialite_version}
+
+#where to find proj and geos libs
+ifndef GEOS
+GEOS=/usr/local
+endif
+ifndef PROJ
+PROJ=/usr/local
+endif
+SPATIAL_LIB_PATH=$(GEOS)/lib:$(PROJ)/lib
 
 jni_md := $(shell find -L "$(JAVA_HOME)" -name jni_md.h)
 ifneq ($(jni_md),)
@@ -77,8 +87,8 @@ Mac-i386_SQLITE_FLAGS  := -DSQLITE_ENABLE_LOCKING_STYLE=0
 
 Mac-x86_64_CC        := gcc -arch $(OS_ARCH) 
 Mac-x86_64_STRIP     := strip -x
-Mac-x86_64_CFLAGS    := -I$(JAVA_HOME)/include -Os -fPIC 
-Mac-x86_64_LINKFLAGS := -dynamiclib 
+Mac-x86_64_CFLAGS    := -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(GEOS)/include -I $(PROJ)/include -O2 -fPIC -arch i386 -arch x86_64 -mmacosx-version-min=10.5 -fvisibility=hidden
+Mac-x86_64_LINKFLAGS := -dynamiclib -static-libgcc -liconv -L$(GEOS)/lib -L$(PROJ)/lib -lgeos_c -lproj
 Mac-x86_64_LIBNAME   := libsqlitejdbc.jnilib
 Mac-x86_64_SQLITE_FLAGS  := 
 

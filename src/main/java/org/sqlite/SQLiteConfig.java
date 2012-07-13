@@ -88,6 +88,7 @@ public class SQLiteConfig
         pragmaParams.remove(Pragma.OPEN_MODE.pragmaName);
         pragmaParams.remove(Pragma.SHARED_CACHE.pragmaName);
         pragmaParams.remove(Pragma.LOAD_EXTENSION.pragmaName);
+        pragmaParams.remove(Pragma.SPATIALITE.pragmaName);
 
         Statement stat = conn.createStatement();
         try {
@@ -132,6 +133,10 @@ public class SQLiteConfig
 
     public boolean isEnabledLoadExtension() {
         return getBoolean(Pragma.LOAD_EXTENSION, "false");
+    }
+
+    public boolean isEnabledSpatiaLite() {
+        return getBoolean(Pragma.SPATIALITE, "false");
     }
 
     public int getOpenModeFlags() {
@@ -183,6 +188,7 @@ public class SQLiteConfig
         OPEN_MODE("open_mode", "Database open-mode flag", null),
         SHARED_CACHE("shared_cache", "Enablse SQLite Shared-Cache mode, native driver only", OnOff),
         LOAD_EXTENSION("enable_load_extension", "Enable SQLite load_extention() function, native driver only", OnOff),
+        SPATIALITE("enable_spatialite", "Enable SpatiaLite extension, native driver only", OnOff),
 
         // Pragmas that can be set after opening the database 
         CACHE_SIZE("cache_size"),
@@ -253,6 +259,10 @@ public class SQLiteConfig
 
     public void enableLoadExtension(boolean enable) {
         set(Pragma.LOAD_EXTENSION, enable);
+    }
+
+    public void enableSpatiaLite(boolean enable) {
+        set(Pragma.SPATIALITE, enable);
     }
 
     public void setReadOnly(boolean readOnly) {

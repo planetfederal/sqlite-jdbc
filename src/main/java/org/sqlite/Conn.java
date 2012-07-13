@@ -54,7 +54,7 @@ class Conn implements Connection
         this.fileName = fileName;
 
         SQLiteConfig config = new SQLiteConfig(prop);
-        open(config.getOpenModeFlags());
+        open(config.getOpenModeFlags(), config);
 
         boolean enableSharedCache = config.isEnabledSharedCache();
         boolean enableLoadExtension = config.isEnabledLoadExtension();
@@ -67,7 +67,7 @@ class Conn implements Connection
 
     private static final String RESOURCE_NAME_PREFIX = ":resource:";
 
-    private void open(int openModeFlags) throws SQLException {
+    private void open(int openModeFlags, SQLiteConfig config) throws SQLException {
         // check the path to the file exists
         if (!":memory:".equals(fileName)) {
             if (fileName.startsWith(RESOURCE_NAME_PREFIX)) {
@@ -137,6 +137,9 @@ class Conn implements Connection
             }
         }
 
+        if (config.isEnabledSpatiaLite()) {
+            db.init_spatialite(false);
+        }
         db.open(this, fileName, openModeFlags);
         setTimeout(3000);
     }

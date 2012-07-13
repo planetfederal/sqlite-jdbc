@@ -57,6 +57,9 @@ final class NativeDB extends DB
     native synchronized int enable_load_extension(boolean enable);
 
     @Override
+    native synchronized int init_spatialite(boolean verbose);
+
+    @Override
     native synchronized void interrupt();
 
     @Override

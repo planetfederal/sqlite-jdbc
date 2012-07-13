@@ -32,7 +32,7 @@ native: $(UPDATE_FLAG)
 
 package: $(UPDATE_FLAG)
 	rm -rf target/dependency-maven-plugin-markers
-	mvn package
+	DYLD_LIBRARY_PATH=$(SPATIAL_LIB_PATH) mvn -Djava.library.path=$(SPATIAL_LIB_PATH) package
 
 clean-native:
 	rm -rf $(SQLITE_BUILD_DIR) $(UPDATE_FLAG)
@@ -67,10 +67,12 @@ $(SQLITE_DLL): $(SQLITE_BUILD_DIR)/sqlite3.o $(BUILD)/org/sqlite/NativeDB.class 
 		$(BUILD)/$(target)/NativeDB.o $(SQLITE_BUILD_DIR)/*.o 
 	$(STRIP) $@
 
-$(BUILD)/$(sqlite)-%/sqlite3.o: $(WORK)/dl/$(sqlite)-amal.zip
+$(BUILD)/$(sqlite)-%/sqlite3.o: $(WORK)/dl/$(sqlite)-amal.zip $(WORK)/dl/$(spatialite)-amal.zip
 	@mkdir -p $(dir $@)
 	$(info building a native library for os:$(OS_NAME) arch:$(OS_ARCH))
 	unzip -qo $(WORK)/dl/$(sqlite)-amal.zip -d $(BUILD)/$(sqlite)-$*
+	unzip -qo $(WORK)/dl/$(spatialite)-amal.zip -d $(BUILD)
+	cp $(BUILD)/libspatialite-*/spatialite.c src/main/ext
 	perl -pi -e "s/sqlite3_api;/sqlite3_api = 0;/g" \
 	    $(BUILD)/$(sqlite)-$*/sqlite3ext.h
 # insert a code for loading extension functions
@@ -97,5 +99,10 @@ $(WORK)/dl/$(sqlite)-amal.zip:
 	@mkdir -p $(dir $@)
 	curl -o$@ \
 	http://www.sqlite.org/sqlite-amalgamation-$(subst .,_,$(version)).zip
+
+$(WORK)/dl/$(spatialite)-amal.zip:
+	@mkdir -p $(dir $@)
+	curl -o$@ \
+	http://www.gaia-gis.it/gaia-sins/libspatialite-sources/libspatialite-amalgamation-$(spatialite_version).zip
 
 

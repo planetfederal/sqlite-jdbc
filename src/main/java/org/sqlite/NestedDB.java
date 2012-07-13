@@ -113,6 +113,12 @@ final class NestedDB extends DB implements Runtime.CallJavaCB
     }
 
     @Override
+    int init_spatialite(boolean verbose) throws SQLException {
+        // TODO init_spatialite is not supported  in pure-java mode
+        return 1;
+    }
+
+    @Override
     synchronized void interrupt() throws SQLException {
         call("sqlite3_interrupt", handle);
     }

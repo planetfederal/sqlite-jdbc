@@ -62,6 +62,8 @@ abstract class DB implements Codes
 
     abstract int enable_load_extension(boolean enable) throws SQLException;
 
+    abstract int init_spatialite(boolean verbose) throws SQLException;
+
     final synchronized void exec(String sql) throws SQLException {
         long pointer = 0;
         try {

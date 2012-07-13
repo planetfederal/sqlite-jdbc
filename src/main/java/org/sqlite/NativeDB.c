@@ -322,6 +322,13 @@ JNIEXPORT jint JNICALL Java_org_sqlite_NativeDB_enable_1load_1extension(
 	return sqlite3_enable_load_extension(gethandle(env, this), enable ? 1 : 0);
 }
 
+JNIEXPORT jint JNICALL Java_org_sqlite_NativeDB_init_1spatialite(
+        JNIEnv *env, jobject this, jboolean verbose)
+{
+   spatialite_init(verbose ? 1 : 0);
+   return 1; 
+}
+
 
 JNIEXPORT void JNICALL Java_org_sqlite_NativeDB__1open(
         JNIEnv *env, jobject this, jstring file, jint flags)

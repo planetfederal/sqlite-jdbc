@@ -32,7 +32,11 @@ native: $(UPDATE_FLAG)
 
 package: $(UPDATE_FLAG)
 	rm -rf target/dependency-maven-plugin-markers
-	DYLD_LIBRARY_PATH=$(SPATIAL_LIB_PATH) mvn -Djava.library.path=$(SPATIAL_LIB_PATH) -P spatialite package
+ifeq ($(OS_NAME),Mac)
+	DYLD_LIBRARY_PATH=$(SPATIAL_LIB_PATH) \
+else
+endif
+	mvn -Djava.library.path="$(SPATIAL_LIB_PATH)" -P spatialite package
 
 clean-native:
 	rm -rf $(SQLITE_BUILD_DIR) $(UPDATE_FLAG)
@@ -64,7 +68,8 @@ $(SQLITE_DLL): $(SQLITE_BUILD_DIR)/sqlite3.o $(BUILD)/org/sqlite/NativeDB.class 
 	$(CC) $(CFLAGS) -c -o $(BUILD)/$(target)/NativeDB.o \
 		src/main/java/org/sqlite/NativeDB.c
 	$(CC) $(CFLAGS) $(LINKFLAGS) -o $@ \
-		$(BUILD)/$(target)/NativeDB.o $(SQLITE_BUILD_DIR)/*.o 
+		$(BUILD)/$(target)/NativeDB.o $(SQLITE_BUILD_DIR)/*.o \
+		$(POST_LINKFLAGS)
 	$(STRIP) $@
 
 $(BUILD)/$(sqlite)-%/sqlite3.o: $(WORK)/dl/$(sqlite)-amal.zip $(WORK)/dl/$(spatialite)-amal.zip
@@ -73,11 +78,19 @@ $(BUILD)/$(sqlite)-%/sqlite3.o: $(WORK)/dl/$(sqlite)-amal.zip $(WORK)/dl/$(spati
 	unzip -qo $(WORK)/dl/$(sqlite)-amal.zip -d $(BUILD)/$(sqlite)-$*
 	unzip -qo $(WORK)/dl/$(spatialite)-amal.zip -d $(BUILD)
 	cp $(BUILD)/libspatialite-*/spatialite.c src/main/ext
+ifeq ($(OS_NAME),Windows)
+	sed -i 's/sqlite3_api;/sqlite3_api = 0;/g' $(BUILD)/$(sqlite)-$*/sqlite3ext.h
+else
 	perl -pi -e "s/sqlite3_api;/sqlite3_api = 0;/g" \
 	    $(BUILD)/$(sqlite)-$*/sqlite3ext.h
+endif
 # insert a code for loading extension functions
+ifeq ($(OS_NAME),Windows)
+	sed -i 's/^opendb_out:/  if(\!db->mallocFailed \&\& rc==SQLITE_OK){ rc = RegisterExtensionFunctions(db); }\nopendb_out:/g' $(BUILD)/$(sqlite)-$*/sqlite3.c
+else
 	perl -pi -e "s/^opendb_out:/  if(!db->mallocFailed && rc==SQLITE_OK){ rc = RegisterExtensionFunctions(db); }\nopendb_out:/;" \
 	    $(BUILD)/$(sqlite)-$*/sqlite3.c
+endif
 	cat src/main/ext/*.c >> $(BUILD)/$(sqlite)-$*/sqlite3.c
 	(cd $(BUILD)/$(sqlite)-$*; $(CC) -o sqlite3.o -c $(CFLAGS) \
 	    -DSQLITE_ENABLE_LOAD_EXTENSION=1 \

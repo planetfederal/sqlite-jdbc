@@ -94,8 +94,9 @@ Mac-x86_64_SQLITE_FLAGS  :=
 
 Windows-x86_CC           := mingw32-gcc
 Windows-x86_STRIP        := strip
-Windows-x86_CFLAGS       := -D_JNI_IMPLEMENTATION_ -Ilib/inc_win -O
-Windows-x86_LINKFLAGS    := -Wl,--kill-at -shared
+Windows-x86_CFLAGS       := -D_JNI_IMPLEMENTATION_ -Ilib/inc_win  -I$(GEOS)/include -I$(PROJ)/include  
+Windows-x86_LINKFLAGS    := -Wl,--kill-at -shared -L$(GEOS)/lib -L$(PROJ)/lib
+Windows-x86_POST_LINKFLAGS    := -liconv -lproj -lgeos_c
 Windows-x86_LIBNAME      := sqlitejdbc.dll
 Windows-x86_SQLITE_FLAGS := 
 
@@ -111,6 +112,7 @@ CC        := $($(target)_CC)
 STRIP     := $($(target)_STRIP)
 CFLAGS    := $($(target)_CFLAGS) 
 LINKFLAGS := $($(target)_LINKFLAGS) 
+POST_LINKFLAGS := $($(target)_POST_LINKFLAGS) 
 LIBNAME   := $($(target)_LIBNAME)
 SQLITE_FLAGS := $($(target)_SQLITE_FLAGS)
 

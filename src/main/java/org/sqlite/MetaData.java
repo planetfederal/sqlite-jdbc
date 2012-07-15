@@ -740,7 +740,7 @@ class MetaData implements DatabaseMetaData
                 + "2000000000 as BUFFER_LENGTH, " + "10   as DECIMAL_DIGITS, " + "10   as NUM_PREC_RADIX, "
                 + "colnullable as NULLABLE, " + "null as REMARKS, " + "null as COLUMN_DEF, "
                 + "0    as SQL_DATA_TYPE, " + "0    as SQL_DATETIME_SUB, " + "2000000000 as CHAR_OCTET_LENGTH, "
-                + "ordpos as ORDINAL_POSITION, " + "(case colnullable when 0 then 'N' when 1 then 'Y' else '' end)"
+                + "ordpos as ORDINAL_POSITION, " + "(case colnullable when 0 then 'NO' when 1 then 'YES' else '' end)"
                 + "    as IS_NULLABLE, " + "null as SCOPE_CATLOG, " + "null as SCOPE_SCHEMA, "
                 + "null as SCOPE_TABLE, " + "null as SOURCE_DATA_TYPE from (";
 
@@ -766,6 +766,8 @@ class MetaData implements DatabaseMetaData
             int colJavaType = -1;
             if (colType.equals("INT") || colType.equals("INTEGER"))
                 colJavaType = Types.INTEGER;
+            else if (colType.equals("DOUBLE"))
+                colJavaType = Types.DOUBLE;
             else if (colType.equals("TEXT"))
                 colJavaType = Types.VARCHAR;
             else if (colType.equals("FLOAT"))

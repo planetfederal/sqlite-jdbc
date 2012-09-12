@@ -26,9 +26,23 @@ import java.sql.Struct;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 class MetaData implements DatabaseMetaData
 {
+    /**
+     * Pattern used to extract column order for an unnamed primary key.
+     */
+    protected final static Pattern PK_UNNAMED =
+            Pattern.compile(".* primary +key *\\((.*?,+.*?)\\).*", Pattern.CASE_INSENSITIVE);
+
+    /**
+    * Pattern used to extract a named primary key.
+    */
+    protected final static Pattern PK_NAMED =
+        Pattern.compile(".* constraint +(.*?) +primary +key *\\((.*?)\\).*", Pattern.CASE_INSENSITIVE);
+
     private Conn              conn;
     private PreparedStatement
             getTables             = null,   getTableTypes        = null,
@@ -1229,9 +1243,9 @@ class MetaData implements DatabaseMetaData
         sql = "select " + "null as TABLE_CAT, " + "null as TABLE_SCHEM, " + "'" + escape(tbl) + "' as TABLE_NAME, "
                 + "cn as COLUMN_NAME, " + "ct as DATA_TYPE, " + "tn as TYPE_NAME, " + "2000000000 as COLUMN_SIZE, "
                 + "2000000000 as BUFFER_LENGTH, " + "10   as DECIMAL_DIGITS, " + "10   as NUM_PREC_RADIX, "
-                + "colnullable as NULLABLE, " + "null as REMARKS, " + "null as COLUMN_DEF, "
+                + "colnullable as NULLABLE, " + "null as REMARKS, " + "colDefault as COLUMN_DEF, "
                 + "0    as SQL_DATA_TYPE, " + "0    as SQL_DATETIME_SUB, " + "2000000000 as CHAR_OCTET_LENGTH, "
-                + "ordpos as ORDINAL_POSITION, " + "(case colnullable when 0 then 'N' when 1 then 'Y' else '' end)"
+                + "ordpos as ORDINAL_POSITION, " + "(case colnullable when 0 then 'NO' when 1 then 'YES' else '' end)"
                 + "    as IS_NULLABLE, " + "null as SCOPE_CATLOG, " + "null as SCOPE_SCHEMA, "
                 + "null as SCOPE_TABLE, " + "null as SOURCE_DATA_TYPE from (";
 
@@ -1245,6 +1259,7 @@ class MetaData implements DatabaseMetaData
             String colName = rs.getString(2);
             String colType = rs.getString(3);
             String colNotNull = rs.getString(4);
+            String colDefault = rs.getString(5);
 
             int colNullable = 2;
             if (colNotNull != null) {
@@ -1289,14 +1304,18 @@ class MetaData implements DatabaseMetaData
                 colJavaType = Types.VARCHAR;
             }
 
-            sql += "select " + i + " as ordpos, " + colNullable + " as colnullable, '" + colJavaType + "' as ct, '"
-                    + escape(colName) + "' as cn, '" + escape(colType) + "' as tn";
+            sql += "select " + i + " as ordpos, "
+                    + colNullable + " as colnullable, '"
+                    + colJavaType + "' as ct, '"
+                    + escape(colName) + "' as cn, '"
+                    + escape(colType) + "' as tn, "
+                    + quote(colDefault == null ? null : escape(colDefault)) + " as colDefault";
 
             if (colPat != null) {
                 sql += " where upper(cn) like upper('" + escape(colPat) + "')";
             }
         }
-        sql += colFound ? ");" : "select null as ordpos, null as colnullable, " + "null as cn, null as tn) limit 0;";
+        sql += colFound ? ");" : "select null as ordpos, null as colnullable, null as cn, null as tn, null as colDefault) limit 0;";
         rs.close();
 
         return stat.executeQuery(sql);
@@ -1356,15 +1375,44 @@ class MetaData implements DatabaseMetaData
      *      java.lang.String)
      */
     public ResultSet getPrimaryKeys(String c, String s, String table) throws SQLException {
-        String sql;
-        ResultSet rs;
+        String[] columnNames = null;
+        String pkName = null;
+        StringBuilder sql = new StringBuilder(512);
+        sql.append("select null as TABLE_CAT, null as TABLE_SCHEM, '")
+           .append(escape(table))
+           .append("' as TABLE_NAME, cn as COLUMN_NAME, ks as KEY_SEQ, pk as PK_NAME from (");
+
         Statement stat = conn.createStatement();
+        // read create SQL script for table
+        ResultSet rs = stat.executeQuery("select sql from sqlite_master where" +
+            " upper(name) = upper('" + escape(table) + "')");
+        rs.next();
+
+        Matcher matcher = PK_NAMED.matcher(rs.getString(1));
+        if (matcher.find()){
+            pkName = '\'' + escape(matcher.group(1)) + '\'';
+            columnNames = matcher.group(2).split(",");
+        }
+        else {
+            matcher = PK_UNNAMED.matcher(rs.getString(1));
+            if (matcher.find()){
+                columnNames = matcher.group(1).split(",");
+            }
+        }
+        rs.close();
+
+        if (columnNames != null) {
+            for (int i = 0; i < columnNames.length; i++) {
+                if (i > 0) sql.append(" union ");
+                sql.append("select ").append(pkName).append(" as pk, '")
+                   .append(escape(columnNames[i].trim())).append("' as cn, ")
+                   .append(i).append(" as ks");
+            }
+
+            return stat.executeQuery(sql.append(") order by cn;").toString());
+        }
 
         rs = stat.executeQuery("pragma table_info('" + escape(table) + "');");
-
-        sql = "select " + "null as TABLE_CAT, " + "null as TABLE_SCHEM, " + "'" + escape(table) + "' as TABLE_NAME, "
-                + "cn as COLUMN_NAME, " + "0 as KEY_SEQ, " + "null as PK_NAME from (";
-
         int i;
         for (i = 0; rs.next(); i++) {
             String colName = rs.getString(2);
@@ -1374,15 +1422,17 @@ class MetaData implements DatabaseMetaData
                 continue;
             }
             if (i > 0) {
-                sql += " union all ";
+                sql.append(" union all ");
             }
 
-            sql += "select '" + escape(colName) + "' as cn";
+            sql.append("select null as pk, 0 as ks, '")
+               .append(escape(colName)).append("' as cn");
         }
-        sql += i == 0 ? "select null as cn) limit 0;" : ");";
+        sql.append(i == 0 ? "select null as cn, null as pk, 0 as ks) order by cn limit 0;" :
+                            ") order by cn;");
         rs.close();
 
-        return stat.executeQuery(sql);
+        return stat.executeQuery(sql.toString());
     }
 
     /**
@@ -1469,13 +1519,14 @@ class MetaData implements DatabaseMetaData
                     count++;
                 }
 
-                exportedKeysQuery.append(");");
                 fk.close();
             }
             catch (SQLException e) {
                 // continue
             }
         }
+
+        exportedKeysQuery.append(");");
 
         String sql = (count > 0) ? exportedKeysQuery.toString() : (String.format(
                 "select %s as PKTABLE_CAT, %s as PKTABLE_SCHEM, %s as PKTABLE_NAME, ", quote(catalog), quote(schema),
@@ -1809,7 +1860,7 @@ class MetaData implements DatabaseMetaData
         //       don't have to worry about Unicode 4, other characters needing
         //       escaping, etc.
         int len = val.length();
-        StringBuffer buf = new StringBuffer(len);
+        StringBuilder buf = new StringBuilder(len);
         for (int i = 0; i < len; i++) {
             if (val.charAt(i) == '\'') {
                 buf.append('\'');

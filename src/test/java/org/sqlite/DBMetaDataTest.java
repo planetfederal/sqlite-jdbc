@@ -32,7 +32,7 @@ public class DBMetaDataTest
     public void connect() throws Exception {
         conn = DriverManager.getConnection("jdbc:sqlite:");
         stat = conn.createStatement();
-        stat.executeUpdate("create table test (id integer primary key, fn float, sn);");
+        stat.executeUpdate("create table test (id integer primary key, fn float default 0.0, sn not null);");
         stat.executeUpdate("create view testView as select * from test;");
         meta = conn.getMetaData();
     }
@@ -115,6 +115,8 @@ public class DBMetaDataTest
         assertTrue(rs.next());
         assertEquals(rs.getString("TABLE_NAME"), "test");
         assertEquals(rs.getString("COLUMN_NAME"), "id");
+        assertEquals(rs.getString("IS_NULLABLE"), "YES");
+        assertEquals(rs.getString("COLUMN_DEF"), null);
         assertEquals(rs.getInt("DATA_TYPE"), Types.INTEGER);
         assertFalse(rs.next());
 
@@ -122,11 +124,15 @@ public class DBMetaDataTest
         assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "fn");
         assertEquals(rs.getInt("DATA_TYPE"), Types.FLOAT);
+        assertEquals(rs.getString("IS_NULLABLE"), "YES");
+        assertEquals(rs.getString("COLUMN_DEF"), "0.0");
         assertFalse(rs.next());
 
         rs = meta.getColumns(null, null, "test", "sn");
         assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "sn");
+        assertEquals(rs.getString("IS_NULLABLE"), "NO");
+        assertEquals(rs.getString("COLUMN_DEF"), null);
         assertFalse(rs.next());
 
         rs = meta.getColumns(null, null, "test", "%");
@@ -166,6 +172,115 @@ public class DBMetaDataTest
 
         rs = meta.getColumns(null, null, "doesnotexist", "%");
         assertFalse(rs.next());
+    }
+
+    @Test
+    public void numberOfgetImportedKeysCols() throws SQLException {
+
+        stat.executeUpdate("create table parent (id1 integer, id2 integer, primary key(id1, id2))");
+        stat.executeUpdate("create table child1 (id1 integer, id2 integer, foreign key(id1) references parent(id1), foreign key(id2) references parent(id2))");
+        stat.executeUpdate("create table child2 (id1 integer, id2 integer, foreign key(id2, id1) references parent(id2, id1))");
+
+        ResultSet importedKeys = meta.getImportedKeys(null, null, "child1");
+
+        //child1: 1st fk (simple)
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child1", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("FKCOLUMN_NAME"));
+
+        //child1: 2nd fk (simple)
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child1", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("FKCOLUMN_NAME"));
+
+        assertFalse(importedKeys.next());
+
+        importedKeys = meta.getImportedKeys(null, null, "child2");
+
+        //child2: 1st fk (composite)
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child2", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("FKCOLUMN_NAME"));
+
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child2", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("FKCOLUMN_NAME"));
+
+        assertFalse(importedKeys.next());
+
+        importedKeys.close();
+    }
+
+/*    @Test
+    public void columnOrderOfgetExportedKeys() throws SQLException {
+
+    exportedKeys.close();
+
+    }*/
+
+    @Test
+    public void numberOfgetExportedKeysCols() throws SQLException {
+
+        stat.executeUpdate("create table parent (id1 integer, id2 integer, primary key(id1, id2))");
+        stat.executeUpdate("create table child1 (id1 integer, id2 integer, foreign key(id1) references parent(id1), foreign key(id2) references parent(id2))");
+        stat.executeUpdate("create table child2 (id1 integer, id2 integer, foreign key(id2, id1) references parent(id2, id1))");
+
+        ResultSet importedKeys = meta.getExportedKeys(null, null, "parent");
+
+        //1st fk (simple) - child1
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child1", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("FKCOLUMN_NAME"));
+
+        //2nd fk (simple) - child1
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child1", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("FKCOLUMN_NAME"));
+
+        //3rd fk (composite) - child2
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child2", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id2", importedKeys.getString("FKCOLUMN_NAME"));
+
+        assertTrue(importedKeys.next());
+        assertEquals("parent", importedKeys.getString("PKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("PKCOLUMN_NAME"));
+        assertNotNull(importedKeys.getString("PK_NAME"));
+        assertNotNull(importedKeys.getString("FK_NAME"));
+        assertEquals("child2", importedKeys.getString("FKTABLE_NAME"));
+        assertEquals("id1", importedKeys.getString("FKCOLUMN_NAME"));
+
+        assertFalse(importedKeys.next());
+
+        importedKeys.close();
     }
 
     @Test
@@ -380,7 +495,10 @@ public class DBMetaDataTest
         stat.executeUpdate("create table nopk (c1, c2, c3, c4);");
         stat.executeUpdate("create table pk1 (col1 primary key, col2, col3);");
         stat.executeUpdate("create table pk2 (col1, col2 primary key, col3);");
-        stat.executeUpdate("create table pk3 (col1, col2, col3, col4, " + "primary key (col2, col3));");
+        stat.executeUpdate("create table pk3 (col1, col2, col3, col4, primary key (col3, col2  ));");
+        // extra spaces and mixed case are intentional, do not remove!
+        stat.executeUpdate("create table pk4 (col1, col2, col3, col4, " +
+                "CONSTraint named  primary key   (col3, col2  ));");
 
         rs = meta.getPrimaryKeys(null, null, "nopk");
         assertFalse(rs.next());
@@ -396,12 +514,14 @@ public class DBMetaDataTest
 
         rs = meta.getPrimaryKeys(null, null, "pk1");
         assertTrue(rs.next());
+        assertEquals(rs.getString("PK_NAME"), null);
         assertEquals(rs.getString("COLUMN_NAME"), "col1");
         assertFalse(rs.next());
         rs.close();
 
         rs = meta.getPrimaryKeys(null, null, "pk2");
         assertTrue(rs.next());
+        assertEquals(rs.getString("PK_NAME"), null);
         assertEquals(rs.getString("COLUMN_NAME"), "col2");
         assertFalse(rs.next());
         rs.close();
@@ -409,8 +529,24 @@ public class DBMetaDataTest
         rs = meta.getPrimaryKeys(null, null, "pk3");
         assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "col2");
+        assertEquals(rs.getString("PK_NAME"), null);
+        assertEquals(rs.getInt("KEY_SEQ"), 1);
         assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "col3");
+        assertEquals(rs.getString("PK_NAME"), null);
+        assertEquals(rs.getInt("KEY_SEQ"), 0);
+        assertFalse(rs.next());
+        rs.close();
+
+        rs = meta.getPrimaryKeys(null, null, "pk4");
+        assertTrue(rs.next());
+        assertEquals(rs.getString("COLUMN_NAME"), "col2");
+        assertEquals(rs.getString("PK_NAME"), "named");
+        assertEquals(rs.getInt("KEY_SEQ"), 1);
+        assertTrue(rs.next());
+        assertEquals(rs.getString("COLUMN_NAME"), "col3");
+        assertEquals(rs.getString("PK_NAME"), "named");
+        assertEquals(rs.getInt("KEY_SEQ"), 0);
         assertFalse(rs.next());
         rs.close();
     }

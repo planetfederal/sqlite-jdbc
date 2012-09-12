@@ -34,6 +34,7 @@ import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -59,6 +60,7 @@ class Conn implements Connection
     private final int    openModeFlags;
     private TransactionMode
                          transactionMode      = TransactionMode.DEFFERED;
+    private List         statements           = null;
 
     /**
      * Constructor to create a connection to a database at the given location.
@@ -435,9 +437,11 @@ class Conn implements Connection
      * @see java.sql.Connection#setReadOnly(boolean)
      */
     public void setReadOnly(boolean ro) throws SQLException {
-        if (!isReadOnly()) {
+        // trying to change read-only flag
+        if (ro != isReadOnly()) {
             throw new SQLException(
-                    "Cannot set read-only flag ofter establishing a connection. Use SQLiteConfig#setReadOnly and SQLiteConfig.createConnection().");
+                "Cannot change read-only flag after establishing a connection." +
+                " Use SQLiteConfig#setReadOnly and SQLiteConfig.createConnection().");
         }
     }
 

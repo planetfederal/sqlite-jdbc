@@ -91,6 +91,14 @@ abstract class DB implements Codes
     abstract int changes() throws SQLException;
 
     /**
+     * @return Number of row changes caused by INSERT, UPDATE or DELETE statements
+     * since the database connection was opened.
+     * @throws SQLException
+     * @see <a href="http://www.sqlite.org/c3ref/total_changes.html">http://www.sqlite.org/c3ref/total_changes.html</a>
+     */
+    abstract int total_changes() throws SQLException;
+
+    /**
      * Enables or disables the sharing of the database cache and schema data structures between
      * connections to the same database.
      * @param enable True to enable; false otherwise.

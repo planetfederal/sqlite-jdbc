@@ -112,8 +112,12 @@ class Stmt extends Unused implements Statement, Codes
      * @see java.sql.Statement#close()
      */
     public void close() throws SQLException {
+        if (db.conn.isClosed())
+            throw DB.newSQLException(SQLITE_ERROR, "Connection is closed");
+        
         if (pointer == 0)
             return;
+        
         rs.close();
         batch = null;
         batchPos = 0;
@@ -178,15 +182,14 @@ class Stmt extends Unused implements Statement, Codes
         }
         else {
             try {
-                //db.prepare(this);
-                //changes = db.executeUpdate(this, null);
+                changes = db.total_changes();
 
                 // directly invokes the exec API to support multiple SQL statements 
                 int statusCode = db._exec(sql);
                 if (statusCode != SQLITE_OK)
                     throw DB.newSQLException(statusCode, "");
 
-                changes = db.changes();
+                changes = db.total_changes() - changes;
             }
             finally {
                 close();

@@ -155,7 +155,7 @@ public class StatementTest
         assertEquals(rs.getString("surname"), "Smith");
         assertFalse(rs.next());
         rs.close();
-        assertEquals(stat.executeUpdate("drop table tab;"), 1);
+        assertEquals(stat.executeUpdate("drop table tab;"), 0);
     }
 
     @Test
@@ -190,7 +190,7 @@ public class StatementTest
         assertEquals(rs.getInt(1), 1000);
         rs.close();
 
-        assertEquals(stat.executeUpdate("drop table in1000;"), 1);
+        assertEquals(stat.executeUpdate("drop table in1000;"), 0);
     }
 
     private void assertArrayEq(int[] a, int[] b) {
@@ -378,5 +378,15 @@ public class StatementTest
     @Test
     public void maxRows() throws SQLException {
         stat.setMaxRows(1);
+    }
+
+    @Test 
+    public void setEscapeProcessingToFals() throws SQLException {
+        stat.setEscapeProcessing(false);
+    }
+
+    @Test(expected=SQLException.class) 
+    public void setEscapeProcessingToTrue() throws SQLException {
+        stat.setEscapeProcessing(true);
     }
 }

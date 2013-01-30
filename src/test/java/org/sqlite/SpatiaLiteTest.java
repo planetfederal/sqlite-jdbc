@@ -1,5 +1,7 @@
 package org.sqlite;
 
+import static org.junit.Assert.assertTrue;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -32,6 +34,16 @@ public class SpatiaLiteTest {
             stat = conn.createStatement();
             ResultSet rs = 
                     stat.executeQuery("SELECT * FROM geometry_columns");
+            rs.close();
+            stat.close();
+
+            stat = conn.createStatement();
+            rs = stat.executeQuery("SELECT SpatiaLite_Version()");
+            assertTrue(rs.next());
+
+            String ver = rs.getString(1);
+            assertTrue(ver.startsWith("3"));
+            
             rs.close();
             stat.close();
         }

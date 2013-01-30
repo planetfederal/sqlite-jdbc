@@ -33,7 +33,7 @@ native: $(UPDATE_FLAG)
 package: $(UPDATE_FLAG)
 	rm -rf target/dependency-maven-plugin-markers
 ifeq ($(OS_NAME),Mac)
-	DYLD_LIBRARY_PATH=$(SPATIAL_LIB_PATH) \
+	DYLD_LIBRARY_PATH=$(GEOS)/lib:$(PROJ)/lib
 else
 endif
 	mvn -Djava.library.path="$(SPATIAL_LIB_PATH)" -P spatialite package
@@ -77,7 +77,7 @@ $(BUILD)/$(sqlite)-%/sqlite3.o: $(WORK)/dl/$(sqlite)-amal.zip $(WORK)/dl/$(spati
 	$(info building a native library for os:$(OS_NAME) arch:$(OS_ARCH))
 	unzip -qo $(WORK)/dl/$(sqlite)-amal.zip -d $(BUILD)/$(sqlite)-$*
 	unzip -qo $(WORK)/dl/$(spatialite)-amal.zip -d $(BUILD)
-	cp $(BUILD)/libspatialite-*/spatialite.c src/main/ext
+	#cp $(BUILD)/libspatialite-*/spatialite.c src/main/ext
 ifeq ($(OS_NAME),Windows)
 	sed -i 's/sqlite3_api;/sqlite3_api = 0;/g' $(BUILD)/$(sqlite)-$*/sqlite3ext.h
 else
@@ -103,6 +103,12 @@ endif
 	    -DSQLITE_ENABLE_STAT2 \
 	    $(SQLITE_FLAGS) \
 	    sqlite3.c)
+	cp $(BUILD)/libspatialite-*/spatialite.c $(BUILD)/$(sqlite)-$*
+	sed -i '' 's/#define sqlite3_auto_extension SPLite3_auto_extension//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+	sed -i '' 's/#define sqlite3_rtree_geometry_callback SPLite3_rtree_geometry_callback//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+    
+	(cd $(BUILD)/$(sqlite)-$*; $(CC) -o spatialite.o -c $(CFLAGS) \
+		spatialite.c)
 
 $(BUILD)/org/sqlite/%.class: src/main/java/org/sqlite/%.java
 	@mkdir -p $(BUILD)

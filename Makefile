@@ -104,8 +104,8 @@ endif
 	    $(SQLITE_FLAGS) \
 	    sqlite3.c)
 	cp $(BUILD)/libspatialite-*/spatialite.c $(BUILD)/$(sqlite)-$*
-	sed -i '' 's/#define sqlite3_auto_extension SPLite3_auto_extension//g' $(BUILD)/$(sqlite)-$*/spatialite.c
-	sed -i '' 's/#define sqlite3_rtree_geometry_callback SPLite3_rtree_geometry_callback//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+	LANG=C sed -i '' 's/#define sqlite3_auto_extension SPLite3_auto_extension//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+	LANG=C sed -i '' 's/#define sqlite3_rtree_geometry_callback SPLite3_rtree_geometry_callback//g' $(BUILD)/$(sqlite)-$*/spatialite.c
     
 	(cd $(BUILD)/$(sqlite)-$*; $(CC) -o spatialite.o -c $(CFLAGS) \
 		spatialite.c)

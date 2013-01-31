@@ -85,10 +85,10 @@ Mac-i386_LINKFLAGS := -dynamiclib
 Mac-i386_LIBNAME   := libsqlitejdbc.jnilib
 Mac-i386_SQLITE_FLAGS  := -DSQLITE_ENABLE_LOCKING_STYLE=0
 
-Mac-x86_64_CC        := gcc -arch $(OS_ARCH) 
+Mac-x86_64_CC        := gcc
 Mac-x86_64_STRIP     := strip -x
-Mac-x86_64_CFLAGS    := -I/System/Library/Frameworks/JavaVM.framework/Headers -I$(GEOS)/include -I $(PROJ)/include -O2 -fPIC -arch i386 -arch x86_64 -mmacosx-version-min=10.5 -fvisibility=hidden -DOMIT_FREEXL -DVERSION=\""${spatialite_version}"\" -DSPL_AMALGAMATION=1 
-Mac-x86_64_LINKFLAGS := -dynamiclib -static-libgcc -liconv -L$(GEOS)/lib -L$(PROJ)/lib -lgeos_c -lproj
+Mac-x86_64_CFLAGS    := -I$(JAVA_HOME)/include -I$(GEOS)/include -I $(PROJ)/include -O2 -fPIC -arch x86_64 -mmacosx-version-min=10.5 -fvisibility=hidden -DOMIT_FREEXL -DVERSION=\""${spatialite_version}"\" -DSPL_AMALGAMATION=1 
+Mac-x86_64_LINKFLAGS := -dynamiclib -arch x86_64 -static-libgcc -Ltarget/build/libs -liconv -lgeos_c -lproj -lstdc++
 Mac-x86_64_LIBNAME   := libsqlitejdbc.jnilib
 Mac-x86_64_SQLITE_FLAGS  := 
 

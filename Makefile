@@ -90,6 +90,10 @@ ifeq ($(OS_NAME),Windows)
 else
 	perl -pi -e "s/^opendb_out:/  if(!db->mallocFailed && rc==SQLITE_OK){ rc = RegisterExtensionFunctions(db); }\nopendb_out:/;" \
 	    $(BUILD)/$(sqlite)-$*/sqlite3.c
+	# Copy .a files to build so we can statically link them into the binary
+	mkdir $(BUILD)/libs
+	cp $(GEOS)/lib/libgeos*.*a $(BUILD)/libs/.
+	cp $(PROJ)/lib/libproj*.*a $(BUILD)/libs/.
 endif
 	cat src/main/ext/*.c >> $(BUILD)/$(sqlite)-$*/sqlite3.c
 	(cd $(BUILD)/$(sqlite)-$*; $(CC) -o sqlite3.o -c $(CFLAGS) \

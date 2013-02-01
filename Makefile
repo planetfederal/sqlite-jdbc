@@ -40,6 +40,7 @@ endif
 
 clean-native:
 	rm -rf $(SQLITE_BUILD_DIR) $(UPDATE_FLAG)
+	rm -rf target/build/libs
 
 
 
@@ -94,6 +95,7 @@ else
 	mkdir $(BUILD)/libs
 	cp $(GEOS)/lib/libgeos*.*a $(BUILD)/libs/.
 	cp $(PROJ)/lib/libproj*.*a $(BUILD)/libs/.
+	(cd $(BUILD)/libs/; ar -x libproj.a; ar -x libgeos.a; ar -x libgeos_c.a)
 endif
 	cat src/main/ext/*.c >> $(BUILD)/$(sqlite)-$*/sqlite3.c
 	(cd $(BUILD)/$(sqlite)-$*; $(CC) -o sqlite3.o -c $(CFLAGS) \
@@ -108,8 +110,13 @@ endif
 	    $(SQLITE_FLAGS) \
 	    sqlite3.c)
 	cp $(BUILD)/libspatialite-*/spatialite.c $(BUILD)/$(sqlite)-$*
+ifeq ($(OS_NAME),Mac)
 	LANG=C sed -i '' 's/#define sqlite3_auto_extension SPLite3_auto_extension//g' $(BUILD)/$(sqlite)-$*/spatialite.c
 	LANG=C sed -i '' 's/#define sqlite3_rtree_geometry_callback SPLite3_rtree_geometry_callback//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+else
+	sed -i 's/#define sqlite3_auto_extension SPLite3_auto_extension//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+	sed -i 's/#define sqlite3_rtree_geometry_callback SPLite3_rtree_geometry_callback//g' $(BUILD)/$(sqlite)-$*/spatialite.c
+endif
     
 	(cd $(BUILD)/$(sqlite)-$*; $(CC) -o spatialite.o -c $(CFLAGS) \
 		spatialite.c)

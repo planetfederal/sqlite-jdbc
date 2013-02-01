@@ -25,7 +25,7 @@ LIB_FOLDER := $(shell $(JAVA) -cp lib $(OSINFO_CLASS))
 
 # Windows uses different path separators, because they hate me
 ifeq ($(OS_NAME),Windows)
-	sep := ;
+     sep := ;
 else
 	sep := :
 endif
@@ -73,8 +73,8 @@ Linux-i386_SQLITE_FLAGS  :=
 
 Linux-amd64_CC  := gcc
 Linux-amd64_STRIP  := strip
-Linux-amd64_CFLAGS    := -I$(JAVA_HOME)/include -Ilib/inc_mac -I$(GEOS)/include -I$(PROJ)/include -Os -fPIC
-Linux-amd64_LINKFLAGS := -shared -L$(GEOS)/lib -L$(PROJ)/lib -lgeos_c -lproj
+Linux-amd64_CFLAGS    := -I$(JAVA_HOME)/include -Ilib/inc_mac -I$(GEOS)/include -I$(PROJ)/include -Os -fPIC -DOMIT_FREEXL -DVERSION=\""${spatialite_version}"\" -DSPL_AMALGAMATION=1
+Linux-amd64_LINKFLAGS := -shared -lstdc++ target/build/libs/*.o
 Linux-amd64_LIBNAME   := libsqlitejdbc.so
 Linux-amd64_SQLITE_FLAGS  := 
 
@@ -88,7 +88,7 @@ Mac-i386_SQLITE_FLAGS  := -DSQLITE_ENABLE_LOCKING_STYLE=0
 Mac-x86_64_CC        := clang
 Mac-x86_64_STRIP     := strip -x
 Mac-x86_64_CFLAGS    := -I$(JAVA_HOME)/include -I$(GEOS)/include -I $(PROJ)/include -O2 -fPIC -arch x86_64 -mmacosx-version-min=10.5 -fvisibility=hidden -DOMIT_FREEXL -DVERSION=\""${spatialite_version}"\" -DSPL_AMALGAMATION=1 
-Mac-x86_64_LINKFLAGS := -dynamiclib -arch x86_64 -Ltarget/build/libs -liconv -lgeos_c -lgeos -lproj -lstdc++
+Mac-x86_64_LINKFLAGS := -dynamiclib -arch x86_64 -Ltarget/build/libs -liconv -lstdc++ target/build/libs/*.o
 Mac-x86_64_LIBNAME   := libsqlitejdbc.jnilib
 Mac-x86_64_SQLITE_FLAGS  := 
 
